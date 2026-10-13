@@ -58,7 +58,11 @@ jobs:
       image: debian:11
     steps:
       - uses: actions/checkout@v4
-      - run: apt-get update && apt-get install -y gcc make curl
+      # Debian 11 is EOL: its repositories now live on archive.debian.org
+      - run: |
+          sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list
+          apt-get -o Acquire::Check-Valid-Until=false update
+          apt-get install -y gcc make curl
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -89,7 +93,11 @@ jobs:
       image: debian:11
     steps:
       - uses: actions/checkout@v4
-      - run: apt-get update && apt-get install -y gcc make curl
+      # Debian 11 is EOL: its repositories now live on archive.debian.org
+      - run: |
+          sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list
+          apt-get -o Acquire::Check-Valid-Until=false update
+          apt-get install -y gcc make curl
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
