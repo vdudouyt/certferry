@@ -108,8 +108,7 @@ pub fn cmd_renew(force: bool) -> Result<()> {
 
     for entry in fs::read_dir(live)? {
         let entry = entry?;
-        // the deploy hooks dir lives next to the domain dirs
-        if !entry.path().is_dir() || Path::new(DEPLOY_HOOKS).starts_with(entry.path()) {
+        if !entry.path().is_dir() {
             continue;
         }
 

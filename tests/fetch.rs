@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const LIVE_DIR: &str = "/etc/certferry";
+const LIVE_DIR: &str = "/etc/certferry/live";
 const HOOKS_DIR: &str = "/etc/certferry/renewal-hooks/deploy";
 
 fn certferry() -> Command {
@@ -24,7 +24,7 @@ fn cleanup(domain: &str) {
 fn clean_all_live() {
     if let Ok(entries) = fs::read_dir(LIVE_DIR) {
         for entry in entries.flatten() {
-            if entry.path().is_dir() && !Path::new(HOOKS_DIR).starts_with(entry.path()) {
+            if entry.path().is_dir() {
                 let _ = fs::remove_dir_all(entry.path());
             }
         }
