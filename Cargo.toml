@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 x509-parser = "0.16"
 pem = "3"
 anyhow = "1"
@@ -16,4 +16,4 @@ log = "0.4"
 rcgen = "0.13"
 pem = "3"
 time = "0.3"
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
