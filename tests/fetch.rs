@@ -7,7 +7,7 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const LIVE_DIR: &str = "/etc/certferry";
-const HOOKS_DIR: &str = "/etc/letsencrypt/renewal-hooks/deploy";
+const HOOKS_DIR: &str = "/etc/certferry/renewal-hooks/deploy";
 
 fn certferry() -> Command {
     Command::new(env!("CARGO_BIN_EXE_certferry"))
@@ -24,7 +24,7 @@ fn cleanup(domain: &str) {
 fn clean_all_live() {
     if let Ok(entries) = fs::read_dir(LIVE_DIR) {
         for entry in entries.flatten() {
-            if entry.path().is_dir() {
+            if entry.path().is_dir() && !Path::new(HOOKS_DIR).starts_with(entry.path()) {
                 let _ = fs::remove_dir_all(entry.path());
             }
         }

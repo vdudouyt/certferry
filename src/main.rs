@@ -36,7 +36,7 @@ pub(crate) fn write_cert_files(base_dir: &Path, domain: &str, certs: &[Vec<u8>])
 
 fn main() {
     logsy::set_echo(true);
-    let _ = logsy::set_filename(Some("/var/log/letsencrypt/certferry.log"));
+    let _ = logsy::set_filename(Some("/var/log/certferry/certferry.log"));
 
     let args: Vec<String> = std::env::args().collect();
 

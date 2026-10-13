@@ -53,7 +53,7 @@ certferry --renew
 
 On each run, it checks all certificates in `/etc/certferry/` and fetches fresh ones for any expiring within 29 days. If the fetched certificate is identical to the existing one, no files are written and no hooks are triggered.
 
-After updating certificates, certferry runs all scripts in `/etc/letsencrypt/renewal-hooks/deploy/` with certbot-compatible environment variables (`RENEWED_LINEAGE`, `RENEWED_DOMAINS`), so your existing reload hooks (e.g. `systemctl reload nginx`) work as-is.
+After updating certificates, certferry runs all scripts in `/etc/certferry/renewal-hooks/deploy/` with certbot-compatible environment variables (`RENEWED_LINEAGE`, `RENEWED_DOMAINS`), so reload hooks written for certbot (e.g. `systemctl reload nginx`) work as-is once copied there. Logs go to `/var/log/certferry/certferry.log`.
 
 ## Usage
 
