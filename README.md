@@ -7,7 +7,7 @@ Easy distribution of wildcard LE certificates
 
 ## How it works
 
-SSL/TLS certificates are public — every server hands them out during the TLS handshake. certferry simply connects to your main server over TLS, extracts the certificate chain, and writes it to the standard certbot directory structure. No custom server, no authentication, no configuration.
+SSL/TLS certificates are public — every server hands them out during the TLS handshake. certferry simply connects to your main server over TLS, extracts the certificate chain, and writes it to `/etc/certferry/` using the same per-domain layout as certbot. No custom server, no authentication, no configuration.
 
 ## Setup
 
@@ -30,7 +30,7 @@ certbot handles automatic renewal. The private key stays on this server and is d
 It's important not to miss ``--reuse-key``, otherwise, automatic updates may be broken on next key rewrite.
 
 ### 2. Slave servers: one-shot deploy & setup updates with certferry
-Copy /etc/letsencrypt/live/yourdomain.com/ directory from your main server by a secure channel.
+Copy /etc/letsencrypt/live/yourdomain.com/ directory from your main server to /etc/certferry/yourdomain.com/ by a secure channel.
 Don't forget to add yourdomain.com to your /etc/hosts file if you're using Cloudflare or anything similar that could prevent you from fetching an original Let's Encrypt certificate.
 ```sh
 certferry yourdomain.com
@@ -38,9 +38,9 @@ certferry yourdomain.com
 
 This connects to `yourdomain.com:443`, extracts the certificate chain, and writes:
 
-- `/etc/letsencrypt/live/yourdomain.com/cert.pem` — leaf certificate
-- `/etc/letsencrypt/live/yourdomain.com/chain.pem` — intermediate certificates
-- `/etc/letsencrypt/live/yourdomain.com/fullchain.pem` — both combined
+- `/etc/certferry/yourdomain.com/cert.pem` — leaf certificate
+- `/etc/certferry/yourdomain.com/chain.pem` — intermediate certificates
+- `/etc/certferry/yourdomain.com/fullchain.pem` — both combined
 
 If all verifications passed, it also installs a systemd timer that runs ``certferry --renew`` twice a day - you should clearly see a message stating that.
 
@@ -51,7 +51,7 @@ Just as said before, this doesn't requires any specific configuration on yourdom
 certferry --renew
 ```
 
-On each run, it checks all certificates in `/etc/letsencrypt/live/` and fetches fresh ones for any expiring within 29 days. If the fetched certificate is identical to the existing one, no files are written and no hooks are triggered.
+On each run, it checks all certificates in `/etc/certferry/` and fetches fresh ones for any expiring within 29 days. If the fetched certificate is identical to the existing one, no files are written and no hooks are triggered.
 
 After updating certificates, certferry runs all scripts in `/etc/letsencrypt/renewal-hooks/deploy/` with certbot-compatible environment variables (`RENEWED_LINEAGE`, `RENEWED_DOMAINS`), so your existing reload hooks (e.g. `systemctl reload nginx`) work as-is.
 

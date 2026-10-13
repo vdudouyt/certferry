@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: cargo build --all-targets
-      - run: sudo mkdir -p /etc/letsencrypt/live /etc/letsencrypt/renewal-hooks/deploy /var/log/letsencrypt
-      - run: sudo chmod -R 777 /etc/letsencrypt /var/log/letsencrypt
+      - run: sudo mkdir -p /etc/certferry /etc/letsencrypt/renewal-hooks/deploy /var/log/letsencrypt
+      - run: sudo chmod -R 777 /etc/certferry /etc/letsencrypt /var/log/letsencrypt
       - run: sudo sysctl net.ipv4.ip_unprivileged_port_start=443
       - run: cargo test -- --test-threads=1
       - run: cargo clippy -- -D warnings

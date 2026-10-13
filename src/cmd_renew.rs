@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Result, ensure};
 use log::{error, info, warn};
 
-use crate::config::{DEFAULT_PORT, DEPLOY_HOOKS, LETSENCRYPT_LIVE, RENEW_THRESHOLD_DAYS};
+use crate::config::{CERTS_DIR, DEFAULT_PORT, DEPLOY_HOOKS, RENEW_THRESHOLD_DAYS};
 use crate::fetcher::{
     fetch_cert_chain, verify_cert_matches_domain, verify_cert_matches_private_key,
 };
@@ -97,8 +97,8 @@ pub(crate) fn run_deploy_hooks(hooks_dir: &Path, base_dir: &Path, domain: &str) 
 }
 
 pub fn cmd_renew(force: bool) -> Result<()> {
-    let live = Path::new(LETSENCRYPT_LIVE);
-    ensure!(live.exists(), "{LETSENCRYPT_LIVE} does not exist");
+    let live = Path::new(CERTS_DIR);
+    ensure!(live.exists(), "{CERTS_DIR} does not exist");
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
     let threshold = now + RENEW_THRESHOLD_DAYS * 86400;

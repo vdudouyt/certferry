@@ -4,7 +4,7 @@ use anyhow::Result;
 use log::{info, warn};
 
 use crate::cmd_renew::run_deploy_hooks;
-use crate::config::{DEFAULT_PORT, DEPLOY_HOOKS, LETSENCRYPT_LIVE};
+use crate::config::{CERTS_DIR, DEFAULT_PORT, DEPLOY_HOOKS};
 use crate::fetcher::{
     fetch_cert_chain, verify_cert_matches_domain, verify_cert_matches_private_key,
 };
@@ -17,7 +17,7 @@ pub fn cmd_fetch(host: &str) -> Result<()> {
     info!("received {} certificate(s)", certs.len());
     verify_cert_matches_domain(&certs[0], host)?;
 
-    let base = Path::new(LETSENCRYPT_LIVE);
+    let base = Path::new(CERTS_DIR);
     verify_cert_matches_private_key(&certs[0], &base.join(host).join("privkey.pem"))?;
 
     write_cert_files(base, host, &certs)?;

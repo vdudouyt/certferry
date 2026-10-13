@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const LIVE_DIR: &str = "/etc/letsencrypt/live";
+const LIVE_DIR: &str = "/etc/certferry";
 const HOOKS_DIR: &str = "/etc/letsencrypt/renewal-hooks/deploy";
 
 fn certferry() -> Command {
