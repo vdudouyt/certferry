@@ -51,7 +51,7 @@ Just as said before, this doesn't requires any specific configuration on yourdom
 certferry --renew
 ```
 
-On each run, it checks all certificates in `/etc/certferry/live/` and fetches fresh ones for any expiring within 29 days. If the fetched certificate is identical to the existing one, no files are written and no hooks are triggered.
+On each run, it checks all certificates in `/etc/certferry/live/` and fetches fresh ones for any that have less than 1/10 of their validity period left (rounded up to whole days, but not less than 2 days and not more than 30 days). If the fetched certificate is identical to the existing one, no files are written and no hooks are triggered.
 
 After updating certificates, certferry runs all scripts in `/etc/certferry/renewal-hooks/deploy/` with certbot-compatible environment variables (`RENEWED_LINEAGE`, `RENEWED_DOMAINS`), so reload hooks written for certbot (e.g. `systemctl reload nginx`) work as-is once copied there. Logs go to `/var/log/certferry/certferry.log`.
 
@@ -59,7 +59,7 @@ After updating certificates, certferry runs all scripts in `/etc/certferry/renew
 
 ```
 certferry <domain>          # fetch certificate from domain:443
-certferry --renew           # renew expiring certificates (29-day threshold)
+certferry --renew           # renew expiring certificates (last 1/10 of validity, 2-30 days)
 certferry --renew --force   # renew all certificates unconditionally
 ```
 

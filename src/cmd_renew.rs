@@ -6,17 +6,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Result, ensure};
 use log::{error, info, warn};
 
-use crate::config::{CERTS_DIR, DEFAULT_PORT, DEPLOY_HOOKS, RENEW_THRESHOLD_DAYS};
+use crate::config::{
+    CERTS_DIR, DEFAULT_PORT, DEPLOY_HOOKS, RENEW_LIFETIME_DIVISOR, RENEW_MAX_DAYS, RENEW_MIN_DAYS,
+};
 use crate::fetcher::{
     fetch_cert_chain, verify_cert_matches_domain, verify_cert_matches_private_key,
 };
 use crate::write_cert_files;
 
-pub(crate) fn cert_not_after(path: &Path) -> Result<i64> {
+/// Returns the (not_before, not_after) timestamps of a PEM certificate.
+pub(crate) fn cert_validity(path: &Path) -> Result<(i64, i64)> {
     let data = fs::read(path)?;
     let p = pem::parse(&data)?;
     let (_, cert) = x509_parser::parse_x509_certificate(p.contents())?;
-    Ok(cert.validity().not_after.timestamp())
+    let validity = cert.validity();
+    Ok((
+        validity.not_before.timestamp(),
+        validity.not_after.timestamp(),
+    ))
+}
+
+/// How long before expiry (in seconds) a certificate becomes due for renewal:
+/// a fraction of its lifetime, rounded up to whole days.
+fn renew_window(not_before: i64, not_after: i64) -> i64 {
+    let per_day = RENEW_LIFETIME_DIVISOR * 86400;
+    let days = (not_after - not_before + per_day - 1) / per_day;
+    days.clamp(RENEW_MIN_DAYS, RENEW_MAX_DAYS) * 86400
 }
 
 /// Try to renew a single domain. Returns Ok(true) if renewed, Ok(false) if skipped.
@@ -24,7 +39,6 @@ pub(crate) fn try_renew(
     base_dir: &Path,
     domain: &str,
     now: i64,
-    threshold: i64,
     force: bool,
 ) -> Result<bool> {
     let cert_path = base_dir.join(domain).join("cert.pem");
@@ -34,10 +48,15 @@ pub(crate) fn try_renew(
     }
 
     if !force {
-        let not_after = cert_not_after(&cert_path)?;
-        if not_after >= threshold {
+        let (not_before, not_after) = cert_validity(&cert_path)?;
+        let renew_at = not_after - renew_window(not_before, not_after);
+        if now < renew_at {
             let days = (not_after - now) / 86400;
-            info!("{}: {} days remaining, skipping", domain, days);
+            let renew_days = (renew_at - now) / 86400;
+            info!(
+                "{}: {} days remaining, renewal in {} days, skipping",
+                domain, days, renew_days
+            );
             return Ok(false);
         }
     }
@@ -101,7 +120,6 @@ pub fn cmd_renew(force: bool) -> Result<()> {
     ensure!(live.exists(), "{CERTS_DIR} does not exist");
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-    let threshold = now + RENEW_THRESHOLD_DAYS * 86400;
     let mut updated = 0u32;
     let mut skipped = 0u32;
     let mut renewed_domains = Vec::new();
@@ -113,7 +131,7 @@ pub fn cmd_renew(force: bool) -> Result<()> {
         }
 
         let domain = entry.file_name().to_string_lossy().into_owned();
-        let Ok(renewed) = try_renew(live, &domain, now, threshold, force)
+        let Ok(renewed) = try_renew(live, &domain, now, force)
             .inspect_err(|e| error!("{}: {:#}", domain, e))
         else {
             skipped += 1;
@@ -133,4 +151,33 @@ pub fn cmd_renew(force: bool) -> Result<()> {
 
     info!("done: {} updated, {} skipped", updated, skipped);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::renew_window;
+
+    const DAY: i64 = 86400;
+
+    #[test]
+    fn renew_window_is_tenth_of_lifetime() {
+        assert_eq!(renew_window(0, 90 * DAY), 9 * DAY);
+    }
+
+    #[test]
+    fn renew_window_rounds_up_to_whole_days() {
+        assert_eq!(renew_window(0, 47 * DAY), 5 * DAY);
+        assert_eq!(renew_window(0, 90 * DAY - 1), 9 * DAY);
+    }
+
+    #[test]
+    fn renew_window_has_two_day_minimum() {
+        assert_eq!(renew_window(0, 6 * DAY), 2 * DAY);
+    }
+
+    #[test]
+    fn renew_window_has_thirty_day_maximum() {
+        assert_eq!(renew_window(0, 300 * DAY), 30 * DAY);
+        assert_eq!(renew_window(0, 398 * DAY), 30 * DAY);
+    }
 }

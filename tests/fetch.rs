@@ -110,6 +110,18 @@ fn make_cert_pem(days_until_expiry: i64) -> String {
     params.self_signed(&key).unwrap().pem()
 }
 
+fn make_cert_pem_with_lifetime(days_total: i64, days_until_expiry: i64) -> String {
+    let key = rcgen::KeyPair::generate().unwrap();
+    let mut params = rcgen::CertificateParams::new(vec!["localhost".to_string()]).unwrap();
+    let ymd = |days: i64| {
+        let dt = time::OffsetDateTime::from_unix_timestamp(now_ts() + days * 86400).unwrap();
+        rcgen::date_time_ymd(dt.year(), dt.month() as u8, dt.day())
+    };
+    params.not_before = ymd(days_until_expiry - days_total);
+    params.not_after = ymd(days_until_expiry);
+    params.self_signed(&key).unwrap().pem()
+}
+
 // ========================================================================
 // Fetch tests
 // ========================================================================
@@ -396,6 +408,37 @@ fn renew_skips_valid_cert() {
 
     let after = fs::read_to_string(dir.join("cert.pem")).unwrap();
     assert_eq!(before, after, "valid cert should not be updated");
+
+    clean_all_live();
+}
+
+#[test]
+fn renew_threshold_scales_with_cert_lifetime() {
+    setup();
+    clean_all_live();
+
+    // 90-day cert with 20 days left: renewal starts at 9 days, so it should skip
+    let dir = Path::new(LIVE_DIR).join("localhost");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("cert.pem"), make_cert_pem_with_lifetime(90, 20)).unwrap();
+
+    let before = fs::read_to_string(dir.join("cert.pem")).unwrap();
+
+    let out = certferry().arg("--renew").output().unwrap();
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let after = fs::read_to_string(dir.join("cert.pem")).unwrap();
+    assert_eq!(before, after, "cert outside renewal window should not be updated");
+
+    let output = [out.stdout, out.stderr].concat();
+    assert!(
+        String::from_utf8_lossy(&output).contains("renewal in"),
+        "skip message should say when renewal starts"
+    );
 
     clean_all_live();
 }
